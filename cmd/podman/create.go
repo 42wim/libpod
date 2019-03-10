@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -193,6 +196,32 @@ func createContainer(c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libp
 	createConfig.HasHealthCheck = hasHealthCheck
 	createConfig.HealthCheck = healthCheck
 
+	// if we're still in the main namespace, start the v6pod program
+	// this will create veth pairs which will be moved into the rootless containers
+	if os.Geteuid() != 0 {
+		v6pod := exec.Command("/bin/v6pod")
+		v6stdout, err := v6pod.StdoutPipe()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s", "Failed to create v6stdout pipe")
+		}
+		v6pod.Stderr = os.Stderr
+		err = v6pod.Start()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s", "Failed to start v6pod")
+		}
+		// v6pod returns a uuid which we have to set in the environment
+		// so that we can write this in the main namespace
+		reader := bufio.NewReader(v6stdout)
+		uuid, err := reader.ReadString('\n')
+		myuser, err := user.Current()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s", "Failed to find user id")
+		}
+		defer v6pod.Wait()
+		os.Setenv("v6pod_uuid", uuid)
+		os.Setenv("v6pod_user", myuser.Uid)
+	}
+
 	ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx, nil)
 	if err != nil {
 		return nil, nil, err
@@ -204,6 +233,8 @@ func createContainer(c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libp
 		}
 
 	}
+	// set the container ID in the environment
+	os.Setenv("v6pod_id", ctr.ID())
 
 	logrus.Debugf("New container created %q", ctr.ID())
 	return ctr, createConfig, nil
