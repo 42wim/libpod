@@ -139,7 +139,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer ctr.rootlessSlirpSyncR.Close()
 	defer ctr.rootlessSlirpSyncW.Close()
 
-	path, err := exec.LookPath("slirp4netns")
+	path, err := exec.LookPath("v6pod-slirp4netns")
 	if err != nil {
 		logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
 		return nil
