@@ -156,7 +156,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 
 	if path == "" {
 		var err error
-		path, err = exec.LookPath("slirp4netns")
+		path, err = exec.LookPath("v6pod-slirp4netns")
 		if err != nil {
 			logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
 			return nil
