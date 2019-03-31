@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -130,6 +131,15 @@ func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	// at this point. The rest is done by WithOptions.
 	createConfig.HealthCheck = healthCheck
 
+	// if we're still in the main namespace, set the v6pod_user variable
+	if os.Geteuid() != 0 {
+		myuser, err := user.Current()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s", "Failed to find user id")
+		}
+		os.Setenv("v6pod_user", myuser.Uid)
+	}
+
 	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, nil)
 	if err != nil {
 		return nil, nil, err
@@ -141,6 +151,9 @@ func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		}
 
 	}
+
+	// set the container ID in the environment
+	os.Setenv("v6pod_id", ctr.ID())
 
 	logrus.Debugf("New container created %q", ctr.ID())
 	return ctr, createConfig, nil
