@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -135,6 +136,15 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
+	// if we're still in the main namespace, set the v6pod_user variable
+	if os.Geteuid() != 0 {
+		myuser, err := user.Current()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s", "Failed to find user id")
+		}
+		os.Setenv("v6pod_user", myuser.Uid)
+	}
+
 	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, pod)
 	if err != nil {
 		return nil, nil, err
@@ -146,6 +156,9 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 
 	}
+
+	// set the container ID in the environment
+	os.Setenv("v6pod_id", ctr.ID())
 
 	logrus.Debugf("New container created %q", ctr.ID())
 	return ctr, createConfig, nil
