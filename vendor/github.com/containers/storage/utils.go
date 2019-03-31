@@ -124,12 +124,14 @@ func getRootlessDirInfo(rootlessUid int) (string, string, error) {
 func getRootlessStorageOpts(rootlessUid int) (StoreOptions, error) {
 	var opts StoreOptions
 
-	dataDir, rootlessRuntime, err := getRootlessDirInfo(rootlessUid)
+	//dataDir, rootlessRuntime, err := getRootlessDirInfo(rootlessUid)
+	_, rootlessRuntime, err := getRootlessDirInfo(rootlessUid)
 	if err != nil {
 		return opts, err
 	}
 	opts.RunRoot = rootlessRuntime
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
+	//opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
+	opts.GraphRoot = filepath.Join("/home", "local-u", os.Getenv("USER"), ".local", "share", "containers", "storage")
 	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
 		opts.GraphDriverName = "overlay"
 		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
