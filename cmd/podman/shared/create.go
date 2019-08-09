@@ -217,6 +217,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	// set the container ID in the environment
 	os.Setenv("v6pod_id", ctr.ID())
+	os.Setenv("v6pod_name", createConfig.Name)
 
 	logrus.Debugf("New container created %q", ctr.ID())
 	return ctr, createConfig, nil
